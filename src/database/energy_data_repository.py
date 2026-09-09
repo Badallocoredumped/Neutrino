@@ -163,6 +163,34 @@ class EnergyDataRepository:
             "datetime": {"$gte": start_date, "$lte": end_date}
         }
         return list(collection.find(query).sort("datetime", 1))
+
+    def get_daily_consumption_summary(self, start_date, end_date):
+        """Return total and average EPİAŞ consumption for each calendar day."""
+        start = pd.Timestamp(start_date).normalize()
+        end = pd.Timestamp(end_date).normalize()
+        if start > end:
+            raise ValueError("start_date must be before or equal to end_date")
+
+        collection = self.mongo_client.get_collection("epias_consumption")
+        records = collection.find({
+            "datetime": {
+                "$gte": start.strftime("%Y-%m-%dT00:00:00"),
+                "$lt": (end + pd.Timedelta(days=1)).strftime("%Y-%m-%dT00:00:00")
+            }
+        }).sort("datetime", 1)
+
+        df = pd.DataFrame(list(records))
+        if df.empty:
+            return pd.DataFrame(columns=["date", "total_consumption", "average_consumption"])
+
+        df["datetime"] = pd.to_datetime(df["datetime"])
+        df["consumption_mwh"] = pd.to_numeric(df["consumption_mwh"])
+        summary = (
+            df.assign(date=df["datetime"].dt.date)
+            .groupby("date", as_index=False)["consumption_mwh"]
+            .agg(total_consumption="sum", average_consumption="mean")
+        )
+        return summary
     
     def get_carbon_summary_stats(self, zone=None):
         """Get carbon intensity summary statistics"""

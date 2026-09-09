@@ -5,6 +5,7 @@ Imports and uses the EPİAŞ consumption collector class
 
 import os
 import sys
+import argparse
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -13,6 +14,7 @@ sys.path.append(os.path.dirname(__file__))
 
 # Import the collector class
 from database.epias_consumption_manager import EPIASConsumptionCollector
+from database.energy_data_repository import EnergyDataRepository
 
 load_dotenv(dotenv_path=".env", override=True)
 
@@ -150,13 +152,29 @@ def collect_last_n_days(days=7):
     print(f"\n🎉 Completed collecting {days} days of data!")
     print(f"📂 All CSV files saved to: {os.path.abspath(epias_dir)}")
 
+def print_daily_summary(start_date, end_date):
+    """Print the MongoDB EPİAŞ consumption summary for a date range."""
+    repository = EnergyDataRepository()
+    try:
+        summary = repository.get_daily_consumption_summary(start_date, end_date)
+        if summary.empty:
+            print("No consumption records found.")
+        else:
+            print(summary.to_string(index=False))
+    finally:
+        repository.close()
+
 if __name__ == "__main__":
-    
-    # Option 1: Collect yesterday's data (default)
-    main()
-    
-    # Option 2: Collect custom date range
-    # collect_custom_date_range("2025-08-20", "2025-08-25")
-    
-    # Option 3: Collect last N days
-    # collect_last_n_days(7)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--daily-summary",
+        nargs=2,
+        metavar=("START_DATE", "END_DATE"),
+        help="Print daily EPİAŞ consumption totals and averages from MongoDB"
+    )
+    args = parser.parse_args()
+
+    if args.daily_summary:
+        print_daily_summary(*args.daily_summary)
+    else:
+        main()
