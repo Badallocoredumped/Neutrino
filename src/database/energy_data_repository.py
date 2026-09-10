@@ -1,5 +1,5 @@
 from .mongodb_client import MongoDBClient
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
 class EnergyDataRepository:
@@ -163,6 +163,35 @@ class EnergyDataRepository:
             "datetime": {"$gte": start_date, "$lte": end_date}
         }
         return list(collection.find(query).sort("datetime", 1))
+
+    def get_daily_consumption_summary(self, start_date, end_date):
+        """Return total and average EPİAŞ consumption for each calendar day."""
+        start = datetime.fromisoformat(str(start_date).replace("Z", "+00:00")).date()
+        end = datetime.fromisoformat(str(end_date).replace("Z", "+00:00")).date()
+        if start > end:
+            raise ValueError("start_date must be before or equal to end_date")
+
+        collection = self.mongo_client.get_collection("epias_consumption")
+        records = collection.find({
+            "datetime": {
+                "$gte": start.isoformat(),
+                "$lt": (end + timedelta(days=1)).isoformat()
+            }
+        }).sort("datetime", 1)
+
+        df = pd.DataFrame(list(records))
+        if df.empty:
+            return pd.DataFrame(columns=["date", "total_consumption", "average_consumption"])
+
+        df["date"] = df["datetime"].map(
+            lambda value: datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
+        )
+        df["consumption_mwh"] = pd.to_numeric(df["consumption_mwh"])
+        summary = (
+            df.groupby("date", as_index=False)["consumption_mwh"]
+            .agg(total_consumption="sum", average_consumption="mean")
+        )
+        return summary
     
     def get_carbon_summary_stats(self, zone=None):
         """Get carbon intensity summary statistics"""
