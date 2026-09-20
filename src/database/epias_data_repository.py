@@ -183,6 +183,45 @@ class EPIASDataRepository:
             logger.error(f"❌ Error retrieving latest consumption data: {e}")
             return pd.DataFrame()
     
+    def export_consumption_to_csv(self, start_date, end_date, output_path):
+        """
+        Export consumption records for a date range directly to a CSV file.
+
+        Args:
+            start_date (str): Start date in YYYY-MM-DD format
+            end_date (str): End date in YYYY-MM-DD format
+            output_path (str): Destination CSV file path
+
+        Returns:
+            int: Number of rows exported
+        """
+        try:
+            password = os.getenv("POSTGRES_PASSWORD", "changeme123")
+            conn = psycopg2.connect(
+                host=os.getenv("POSTGRES_HOST") or os.getenv("POSTGRES_HOST_DEV", "localhost"),
+                database=os.getenv("POSTGRES_DB") or os.getenv("POSTGRES_DB_DEV"),
+                user=os.getenv("POSTGRES_USER") or os.getenv("POSTGRES_USER_DEV"),
+                password=password,
+                port=os.getenv("POSTGRES_PORT", 5432)
+            )
+
+            query = (
+                f"SELECT datetime, consumption_mwh FROM epias_power_consumption "
+                f"WHERE datetime >= '{start_date}' AND datetime <= '{end_date}' "
+                f"ORDER BY datetime"
+            )
+
+            df = pd.read_sql_query(query, conn)
+            conn.close()
+
+            df.to_csv(output_path, index=False)
+            print(f"💾 Exported {len(df)} records to {output_path}")
+            return len(df)
+
+        except Exception as e:
+            logger.error(f"❌ Error exporting consumption data: {e}")
+            return 0
+
     def close(self):
         """Close database connection"""
         if self.pg_conn:
