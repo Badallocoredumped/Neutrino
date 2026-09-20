@@ -183,6 +183,23 @@ class EPIASDataRepository:
             logger.error(f"❌ Error retrieving latest consumption data: {e}")
             return pd.DataFrame()
     
+    def get_peak_consumption_hour(self, start_date, end_date):
+        """
+        Return the hour with the highest consumption in the given date range.
+
+        Args:
+            start_date (datetime): Start of range (inclusive)
+            end_date (datetime): End of range (inclusive)
+
+        Returns:
+            dict: {'datetime': ..., 'consumption_mwh': ...} for the peak hour
+        """
+        df = self.get_consumption_data_by_date_range(start_date, end_date)
+        peak_idx = df["consumption_mwh"].idxmax()
+        peak_row = df.loc[peak_idx]
+        print(f"⚡ Peak consumption hour: {peak_row['datetime']} — {peak_row['consumption_mwh']:.2f} MWh")
+        return {"datetime": peak_row["datetime"], "consumption_mwh": float(peak_row["consumption_mwh"])}
+
     def close(self):
         """Close database connection"""
         if self.pg_conn:
