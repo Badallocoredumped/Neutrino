@@ -41,15 +41,25 @@ class EPIASDataRepository:
             logger.error(f"❌ Failed to connect to PostgreSQL: {e}")
             raise e
     
+    @staticmethod
+    def _deduplicate_records(df):
+        """Drop duplicate records from an incoming consumption DataFrame."""
+        deduped = df.copy()
+        deduped["_date"] = deduped["datetime"].dt.date
+        deduped = deduped.drop_duplicates(subset=["_date"]).drop(columns=["_date"])
+        return deduped.reset_index(drop=True)
+
     def save_consumption_data(self, consumption_df):
         """Save consumption data to epias_power_consumption table with smart upsert"""
         if consumption_df.empty:
             print("⚠️ No EPİAŞ consumption data to save")
             return False
-        
+
+        consumption_df = self._deduplicate_records(consumption_df)
+
         try:
             cursor = self.pg_conn.cursor()
-            
+
             # Calculate time range for summary
             min_datetime = consumption_df["datetime"].min()
             max_datetime = consumption_df["datetime"].max()
