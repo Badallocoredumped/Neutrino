@@ -117,10 +117,10 @@ class EPIASConsumptionCollector:
                 
                 # Rename consumption column
                 if 'consumption' in df.columns:
-                    df = df.rename(columns={'consumption': 'consumption_mwh'})
-                
+                    df = df.rename(columns={'consumption': 'energy_mwh'})
+
                 # Keep only required columns
-                columns_to_keep = [col for col in ['datetime', 'consumption_mwh'] if col in df.columns]
+                columns_to_keep = [col for col in ['datetime', 'energy_mwh'] if col in df.columns]
                 if columns_to_keep:
                     df = df[columns_to_keep]
                 else:
