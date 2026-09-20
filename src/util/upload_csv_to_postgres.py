@@ -16,11 +16,11 @@ def parse_csv(csv_path):
     df = df.rename(columns={
         "Tarih": "date",
         "Saat": "hour",
-        "Tüketim Miktarı(MWh)": "consumption_mwh"
+        "Tüketim Miktarı(MWh)": "energy_mwh"
     })
     # Convert consumption to float (replace comma with dot)
-    df["consumption_mwh"] = (
-        df["consumption_mwh"]
+    df["energy_mwh"] = (
+        df["energy_mwh"]
         .str.replace(".", "", regex=False)   # Remove thousands separator
         .str.replace(",", ".", regex=False)  # Replace decimal comma with dot
         .astype(float)
@@ -28,7 +28,7 @@ def parse_csv(csv_path):
     # Combine date and hour into a single datetime column
     df["datetime"] = pd.to_datetime(df["date"] + " " + df["hour"], format="%d.%m.%Y %H:%M")
     # Select only needed columns
-    df = df[["datetime", "consumption_mwh"]]
+    df = df[["datetime", "energy_mwh"]]
     return df
 
 def main():

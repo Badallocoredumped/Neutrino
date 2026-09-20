@@ -82,21 +82,21 @@ class EPIASDataRepository:
                     dt = pd.to_datetime(datetime_obj)
                     display_datetime = dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
                 
-                consumption_mwh = float(row["consumption_mwh"])
-                
+                energy_mwh = float(row["energy_mwh"])
+
                 # Use PostgreSQL UPSERT (INSERT ... ON CONFLICT)
                 upsert_sql = """
-                    INSERT INTO epias_power_consumption (datetime, consumption_mwh, created_at, updated_at)
+                    INSERT INTO epias_power_consumption (datetime, energy_mwh, created_at, updated_at)
                     VALUES (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                    ON CONFLICT (datetime) 
-                    DO UPDATE SET 
-                        consumption_mwh = EXCLUDED.consumption_mwh,
+                    ON CONFLICT (datetime)
+                    DO UPDATE SET
+                        energy_mwh = EXCLUDED.energy_mwh,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE epias_power_consumption.consumption_mwh != EXCLUDED.consumption_mwh
+                    WHERE epias_power_consumption.energy_mwh != EXCLUDED.energy_mwh
                     RETURNING (xmax = 0) AS inserted
                 """
                 
-                cursor.execute(upsert_sql, (datetime_str, consumption_mwh))
+                cursor.execute(upsert_sql, (datetime_str, energy_mwh))
                 result = cursor.fetchone()
                 
                 if result and result[0]:  # INSERT
@@ -140,7 +140,7 @@ class EPIASDataRepository:
         """
         try:
             query = """
-                SELECT datetime, consumption_mwh, created_at, updated_at
+                SELECT datetime, energy_mwh, created_at, updated_at
                 FROM epias_power_consumption
                 WHERE datetime >= %s AND datetime <= %s
                 ORDER BY datetime
@@ -170,7 +170,7 @@ class EPIASDataRepository:
         """
         try:
             query = """
-                SELECT datetime, consumption_mwh, created_at, updated_at
+                SELECT datetime, energy_mwh, created_at, updated_at
                 FROM epias_power_consumption
                 ORDER BY datetime DESC
                 LIMIT %s

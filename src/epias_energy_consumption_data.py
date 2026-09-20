@@ -60,14 +60,14 @@ def main():
         print(f"\n📈 Final Data Summary:")
         print(f"Records: {len(df)}")
         print(f"Date range: {df['datetime'].min()} to {df['datetime'].max()}")
-        print(f"Avg consumption: {df['consumption_mwh'].mean():.2f} MWh")
-        print(f"Min consumption: {df['consumption_mwh'].min():.2f} MWh")
-        print(f"Max consumption: {df['consumption_mwh'].max():.2f} MWh")
+        print(f"Avg consumption: {df['energy_mwh'].mean():.2f} MWh")
+        print(f"Min consumption: {df['energy_mwh'].min():.2f} MWh")
+        print(f"Max consumption: {df['energy_mwh'].max():.2f} MWh")
         
         # Show hourly pattern
         print(f"\n🕐 Hourly Pattern (sample):")
         df['hour'] = df['datetime'].dt.hour
-        hourly_avg = df.groupby('hour')['consumption_mwh'].mean()
+        hourly_avg = df.groupby('hour')['energy_mwh'].mean()
         for hour in [0, 6, 12, 18, 23]:
             if hour in hourly_avg.index:
                 print(f"  {hour:02d}:00 - {hourly_avg[hour]:.2f} MWh")
