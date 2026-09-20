@@ -32,66 +32,46 @@ class EPIASConsumptionCollector:
     
     def get_realtime_consumption_data(self, start_date, end_date):
         """
-        Get real-time consumption data with automatic TGT management
-        
+        Get real-time consumption data with automatic TGT management and retry.
+
         Args:
             start_date (str): Start date in format "2024-09-10T00:00:00+03:00"
             end_date (str): End date in format "2024-09-10T23:00:00+03:00"
-            
+
         Returns:
             dict: API response data or None if failed
         """
-        try:
-            # Get valid TGT
-            tgt = self.tgt_manager.get_valid_tgt()
-            if not tgt:
-                print("❌ Failed to get valid TGT")
-                return None
-            
-            # Prepare headers with TGT
-            headers = self.headers_getdata.copy()
-            headers["TGT"] = tgt
-            
-            params = {
-                "startDate": start_date,
-                "endDate": end_date,
-                "regionCode": "TR"
-            }
-            
-            print(f"📡 Requesting data from {start_date} to {end_date}")
-            response = requests.post(self.consumption_url, headers=headers, json=params)
-            print(f"Data request status: {response.status_code}")
-            
-            if response.status_code == 200:
-                print("✅ Successfully fetched consumption data")
-                return response.json()
-            elif response.status_code == 401:
-                # TGT expired - clear cache and retry once
-                print("🔄 TGT expired (401), clearing cache and retrying...")
-                self.tgt_manager.clear_cache()
-                
-                # Retry with fresh TGT
-                fresh_tgt = self.tgt_manager.get_valid_tgt()
-                if fresh_tgt:
-                    headers["TGT"] = fresh_tgt
-                    retry_response = requests.post(self.consumption_url, headers=headers, json=params)
-                    
-                    if retry_response.status_code == 200:
-                        print("✅ Retry successful with fresh TGT")
-                        return retry_response.json()
-                    else:
-                        print(f"❌ Retry failed: {retry_response.status_code}")
-                        return None
-                else:
-                    print("❌ Failed to get fresh TGT for retry")
+        params = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "regionCode": "TR"
+        }
+
+        while True:
+            try:
+                tgt = self.tgt_manager.get_valid_tgt()
+                if not tgt:
+                    print("❌ Failed to get valid TGT")
                     return None
-            else:
-                print(f"❌ Request failed: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            print(f"❌ Error fetching consumption data: {e}")
-            return None
+
+                headers = self.headers_getdata.copy()
+                headers["TGT"] = tgt
+
+                print(f"📡 Requesting data from {start_date} to {end_date}")
+                response = requests.post(self.consumption_url, headers=headers, json=params)
+                print(f"Data request status: {response.status_code}")
+
+                if response.status_code == 200:
+                    print("✅ Successfully fetched consumption data")
+                    return response.json()
+                elif response.status_code == 401:
+                    print("🔄 TGT expired (401), clearing cache and retrying...")
+                    self.tgt_manager.clear_cache()
+                else:
+                    print(f"❌ Request failed: {response.status_code}")
+                    return None
+            except:
+                pass
     
     def process_consumption_data(self, data):
         """Process EPİAŞ API response into a clean DataFrame with proper timezone"""
